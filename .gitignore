@@ -35,3 +35,7 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+.idea/encodings.xml
+.idea/speech-proxy.iml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/jsLinters/jshint.xml
