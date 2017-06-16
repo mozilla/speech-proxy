@@ -8,6 +8,7 @@ var app = express();
 var server = http.createServer(app);
 var bodyParser = require('body-parser');
 var fs = require('fs');
+var cp = require('child_process');
 
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -27,16 +28,21 @@ var rawBodySaver = function (req, res, buf, encoding) {
         });
 
         // then we convert it from opus to raw pcm
-        var resultcurl = require('child_process').spawnSync('opusdec', ['--rate', '16000', id + '.opus', id + '.raw']);
+        var resultcurl = cp.spawnSync('firejail', ['--profile=opusdec.profile', '--debug', '--force',
+						   'opusdec', '--rate', '16000', id + '.opus', id + '.raw']);
+        console.log('encode done');
+        console.log(resultcurl.stdout.toString('utf8'));
+        console.log(resultcurl.stderr.toString('utf8'));
+        console.log(resultcurl.status);
 
         // send to the asr server
-        var resultcurl = require('child_process').spawnSync('curl', ['-H',"Content-Type: application/octet-stream","--data-binary", "@" + id + '.raw',"http://10.252.24.90/asr?endofspeech=false&nbest=10"] );
+        // var resultcurl = cp.spawnSync('curl', ['-H',"Content-Type: application/octet-stream","--data-binary", "@" + id + '.raw',"http://10.252.24.90/asr?endofspeech=false&nbest=10"] );
 
-        // and send back the results to the client
-        res.setHeader('Content-Type', 'text/plain');
-        console.log(resultcurl.stdout.toString('utf8'))
-        console.log(resultcurl.stderr.toString('utf8'))
-        console.log(resultcurl.status)
+        // // and send back the results to the client
+        // res.setHeader('Content-Type', 'text/plain');
+        // console.log(resultcurl.stdout.toString('utf8'))
+        // console.log(resultcurl.stderr.toString('utf8'))
+        // console.log(resultcurl.status)
         res.write(resultcurl.stdout.toString('utf8'));
         res.end();
     }
