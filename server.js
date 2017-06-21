@@ -64,25 +64,20 @@ app.use(function (req, res) {
   ], {stdio: ['pipe', 'pipe', 'pipe']});
 
   opusdec.on('error', function (err) {
-    console.log('Failed to start child process:', err);
+    process.stderr.write('Failed to start child process:', err, '\n');
     res.status(500);
     res.end();
   });
 
-  console.log('recieved body with # bytes:',req.body.length);
   opusdec.stdin.write(req.body);
   opusdec.stdin.end();
 
+  // no-op to not fill up the buffer
   opusdec.stderr.on('data', function (data) {
-    console.log(data.toString('utf8'));
+    process.stderr.write(data.toString('utf8'));
   });
 
-  // opusdec.stdout.on('data', function (data) {
-  //   console.log('got stdout data:', data.length);
-  // });
-
   opusdec.on('close', function (code) {
-    console.log(`opusdec exited with code ${code}`);
     if (code !== 0) {
       res.status(500);
       res.end();
@@ -99,12 +94,9 @@ app.use(function (req, res) {
   }, function (asrErr, asrRes, asrBody) {
     // and send back the results to the client
     if (asrErr) {
-      console.log('error making request to ASR:', asrErr);
       res.status(502);
       return res.end();
     }
-    console.log(asrErr, res, resBody);
-
     const resBody = asrBody && asrBody.toString('utf8');
 
     res.status(200);
@@ -115,4 +107,4 @@ app.use(function (req, res) {
 });
 
 server.listen(9001);
-console.log('HTTP and BinaryJS server started on port 9001');
+process.stdout.write('HTTP and BinaryJS server started on port 9001\n');
