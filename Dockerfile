@@ -34,6 +34,8 @@ RUN npm cache verify && \
 
 COPY . /app
 
+RUN chown -R app:$(id -gn app) /app/.config
+
 USER app
 ENTRYPOINT ["npm"]
 CMD ["start"]
