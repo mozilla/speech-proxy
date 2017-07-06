@@ -7,12 +7,15 @@ RUN groupadd --gid 10001 app && \
 
 WORKDIR /app
 
-# Install node requirements
 COPY package.json package.json
+
+# Install updates
 RUN apt-get update && \
     apt-get install -y \
-    	    	    libgmp-dev git python build-essential opus-tools && \
-    su app -c "npm --loglevel warn install" && \
+        libgmp-dev git python build-essential opus-tools
+
+# Install node requirements
+RUN su app -c "npm --loglevel warn install" && \
     npm install
 
 # Install firejail
@@ -28,7 +31,6 @@ RUN npm cache verify && \
     apt remove -y libgmp-dev git python build-essential && \
     apt-get autoremove -y && \
     apt-get clean
-
 
 COPY . /app
 

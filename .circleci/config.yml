@@ -1,0 +1,54 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    working_directory: ~/speaktome
+    steps:
+      - run:
+          name: Install essential packages
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl build-essential make git
+
+      - checkout
+
+      - run:
+          name: Create version.json
+          command: |
+            # create a version.json per https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
+            printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' \
+            "$CIRCLE_SHA1" \
+            "$CIRCLE_TAG" \
+            "$CIRCLE_PROJECT_USERNAME" \
+            "$CIRCLE_PROJECT_REPONAME" \
+            "$CIRCLE_BUILD_URL" > ~/speaktome/version.json
+
+      - store_artifacts:
+          path: ~/speaktome/version.json
+
+      - run:
+          name: Build Docker image
+          command: |
+            docker info
+            make build
+
+      - run:
+          name: Run the app
+          command: make run
+
+      - run:
+          name: Run tests
+          command: make test
+
+      - run:
+          name: Push to Dockerhub
+          command: |
+            # set DOCKER_DEPLOY=true in Circle UI to push to Dockerhub
+            DOCKER_DEPLOY="${DOCKER_DEPLOY:-false}"
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              bin/ci/deploy-dockerhub.sh latest
+              bin/ci/deploy-dockerhub.sh "circle_build_$CIRCLE_BUILD_NUM"
+            fi
+            if [ -n "${CIRCLE_TAG}" ]; then
+              bin/ci/deploy-dockerhub.sh "$CIRCLE_TAG"
+            fi
