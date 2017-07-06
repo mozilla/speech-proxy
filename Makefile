@@ -8,12 +8,11 @@ run:
 		-p 9009:9009 \
 		--env ASR_HOST=localhost \
 		--env ASR_PORT=9009 \
-		-v $(shell pwd):/app/ \
 		--privileged \
 		app:build
 
 test:
-	curl -X POST http://localhost:9001/ -H 'Content-Type: audio/opus' --data-binary @speech_orig.opus
+	curl -i -X POST http://localhost:9001/ -H 'Content-Type: audio/opus' --data-binary @speech_orig.opus
 
 sh:
 	docker exec -it $CONTAINER_ID bash
