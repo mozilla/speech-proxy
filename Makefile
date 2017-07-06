@@ -8,7 +8,6 @@ run:
 		-p 9009:9009 \
 		--env ASR_HOST=localhost \
 		--env ASR_PORT=9009 \
-		-v $(shell pwd):/app/ \
 		--privileged \
 		app:build
 
