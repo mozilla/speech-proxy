@@ -35,10 +35,11 @@ jobs:
       - run:
           name: Run the app
           command: make run
+          background: true
 
       - run:
           name: Run tests
-          command: make test
+          command: sleep 5 && make test
 
       - run:
           name: Push to Dockerhub
