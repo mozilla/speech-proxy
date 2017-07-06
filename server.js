@@ -106,5 +106,6 @@ app.use(function (req, res) {
   });
 });
 
-server.listen(9001);
-process.stdout.write('HTTP and BinaryJS server started on port 9001\n');
+const port = process.env.PORT || 9001;
+server.listen(port);
+process.stdout.write('HTTP and BinaryJS server started on port ' + port + '\n');
