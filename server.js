@@ -14,17 +14,14 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-const ASR_HOST = process.env.ASR_HOST;
-const ASR_PORT = process.env.ASR_PORT;
+const ASR_URL = process.env.ASR_URL;
 
 const configSchema =  Joi.object({
-  asr_host: Joi.string().hostname(),
-  asr_port: Joi.number().integer().positive().default(80)
+  asr_url: Joi.string()
 });
 
 Joi.assert({
-  asr_host: ASR_HOST, // e.g. 10.252.24.90
-  asr_port: ASR_PORT
+  asr_url: ASR_URL
 }, configSchema);
 
 app.use(function(req, res, next) {
@@ -103,7 +100,7 @@ app.use(function (req, res) {
 
   // send to the asr server
   request({
-    url: `http://${ASR_HOST}:${ASR_PORT}/asr`,
+    url: ASR_URL,
     method: 'POST',
     body: opusdec.stdout,
     headers: {'Content-Type': 'application/octet-stream'},
