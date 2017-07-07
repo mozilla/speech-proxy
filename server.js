@@ -51,6 +51,7 @@ app.use(
 
 app.get('/__lbheartbeat__', function (req, res) {
   res.status(200);
+  res.end();
 });
 
 app.use(function (req, res) {
