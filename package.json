@@ -5,6 +5,7 @@
   "dependencies": {
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
+    "fs": "0.0.1-security",
     "joi": "^10.6.0",
     "request": "^2.81.0"
   },
