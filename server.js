@@ -53,8 +53,8 @@ app.get('/__version__', function (req, res) {
     result = fs.readFileSync("version.json", "utf8");
   }
 
-  res.status(200);
   res.setHeader('Content-Type', 'application/json');
+  res.status(200);
   res.write(result);
   res.end();
 });
@@ -62,6 +62,45 @@ app.get('/__version__', function (req, res) {
 app.get('/__lbheartbeat__', function (req, res) {
   res.status(200);
   res.end();
+});
+
+app.get('/__heartbeat__', function (req, res) {
+  let opusbytes = "";
+  let hbfile = "hb.raw";
+  if (fs.existsSync(hbfile)){
+    opusbytes = fs.readFileSync(hbfile);
+  }
+  // send to the asr server
+  request({
+    url: ASR_URL,
+    method: 'POST',
+    body: opusbytes,
+    headers: {'Content-Type': 'application/octet-stream'},
+    qs: {'endofspeech': 'false', 'nbest': 10}
+  }, function (asrErr, asrRes, asrBody) {
+    // and send back the results to the client
+    if (asrErr) {
+      res.status(500);
+      return res.end();
+    }
+
+    let jsonResults;
+    try {
+      jsonResults = JSON.parse(asrBody.toString('utf8'));
+      for (idx in jsonResults.data) {
+         if (jsonResults.data[idx].text === "HEART BEAT"){
+           res.status(200);
+           return res.end();
+         }
+      }
+    } catch (e) {
+      res.status(500);
+      return res.end();
+    }
+
+    res.status(500);
+    return res.end();
+  });
 });
 
 app.use(function (req, res) {
