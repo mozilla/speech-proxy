@@ -9,6 +9,7 @@ const process = require('process');
 const cp = require('child_process');
 const request = require('request');
 const Joi = require('joi');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -48,6 +49,18 @@ app.use(
     }
   })
 );
+
+app.get('/__version__', function (req, res) {
+  let result = "";
+  if (fs.existsSync("version.json")){
+    result = fs.readFileSync("version.json", "utf8");
+  }
+
+  res.status(200);
+  res.setHeader('Content-Type', 'application/json');
+  res.write(result);
+  res.end();
+});
 
 app.get('/__lbheartbeat__', function (req, res) {
   res.status(200);
