@@ -17,12 +17,16 @@ const server = http.createServer(app);
 const ASR_URL = process.env.ASR_URL;
 
 const configSchema =  Joi.object({
-  asr_url: Joi.string()
+  asr_url: Joi.string(),
+  disable_jail: Joi.boolean()
 });
 
-Joi.assert({
-  asr_url: ASR_URL
-}, configSchema);
+const config = {
+  asr_url: ASR_URL,
+  disable_jail: (process.env.DISABLE_DECODE_JAIL === '1')
+};
+
+Joi.assert(config, configSchema);
 
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -66,16 +70,27 @@ app.get('/__lbheartbeat__', function (req, res) {
 
 app.use(function (req, res) {
   // then we convert it from opus to raw pcm
-  const opusdec = cp.spawn('firejail', [
+  const jailArgs = [
+    'firejail',
     '--profile=opusdec.profile',
     '--debug',
-    '--force',
+    '--force'
+  ];
+  const decodeArgs = [
     'opusdec',
     '--rate',
     '16000',
     '-',
     '-'
-  ], {stdio: ['pipe', 'pipe', 'pipe']});
+  ];
+
+  let args = null;
+  if (config.disable_jail) {
+    args = decodeArgs;
+  } else {
+    args = jailArgs.concat(decodeArgs);
+  }
+  const opusdec = cp.spawn(args[0], args.slice(1), {stdio: ['pipe', 'pipe', 'pipe']});
 
   opusdec.on('error', function (err) {
     process.stderr.write('Failed to start child process:', err, '\n');
@@ -100,7 +115,7 @@ app.use(function (req, res) {
 
   // send to the asr server
   request({
-    url: ASR_URL,
+    url: config.asr_url,
     method: 'POST',
     body: opusdec.stdout,
     headers: {'Content-Type': 'application/octet-stream'},
@@ -120,6 +135,9 @@ app.use(function (req, res) {
   });
 });
 
+if (config.disable_jail) {
+  process.stdout.write('Opus decode jail disabled.\n');
+}
 const port = process.env.PORT || 9001;
 server.listen(port);
 process.stdout.write('HTTP and BinaryJS server started on port ' + port + '\n');
