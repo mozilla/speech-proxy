@@ -48,9 +48,9 @@ app.use(
 );
 
 app.get('/__version__', function (req, res) {
-  let result = "";
-  if (fs.existsSync("version.json")){
-    result = fs.readFileSync("version.json", "utf8");
+  let result = '';
+  if (fs.existsSync('version.json')){
+    result = fs.readFileSync('version.json', 'utf8');
   }
 
   res.status(200);
