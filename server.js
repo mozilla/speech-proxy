@@ -152,8 +152,8 @@ app.use(function (req, res) {
     }
     const resBody = asrBody && asrBody.toString('utf8');
 
-    res.status(200);
     res.setHeader('Content-Type', 'text/plain');
+    res.status(200);
     res.write(resBody);
     return res.end();
   });
