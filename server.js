@@ -69,8 +69,8 @@ app.get('/__lbheartbeat__', function (req, res) {
 });
 
 app.get('/__heartbeat__', function (req, res) {
-  let opusbytes = "";
-  let hbfile = "hb.raw";
+  let opusbytes = '';
+  const hbfile = 'hb.raw';
   if (fs.existsSync(hbfile)){
     opusbytes = fs.readFileSync(hbfile);
   }
@@ -91,11 +91,11 @@ app.get('/__heartbeat__', function (req, res) {
     let jsonResults;
     try {
       jsonResults = JSON.parse(asrBody.toString('utf8'));
-      for (idx in jsonResults.data) {
-         if (jsonResults.data[idx].text === "HEART BEAT"){
-           res.status(200);
-           return res.end();
-         }
+      for (const idx in jsonResults.data) {
+        if (jsonResults.data[idx].text === 'HEART BEAT') {
+          res.status(200);
+          return res.end();
+        }
       }
     } catch (e) {
       res.status(500);
