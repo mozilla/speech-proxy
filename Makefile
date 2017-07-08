@@ -8,6 +8,7 @@ run:
 		-p 9009:9009 \
 		--env ASR_HOST=localhost \
 		--env ASR_PORT=9009 \
+		--env DISABLE_DECODE_JAIL=0 \
 		--privileged \
 		app:build
 
