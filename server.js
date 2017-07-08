@@ -148,7 +148,7 @@ app.use(function (req, res) {
   opusdec.on('close', function (code) {
     if (code !== 0) {
       res.status(500);
-      res.end();
+      return res.end();
     }
   });
 
