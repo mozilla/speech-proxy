@@ -5,9 +5,7 @@ build:
 run:
 	docker run \
 		-p 9001:9001 \
-		-p 9009:9009 \
-		--env ASR_HOST=localhost \
-		--env ASR_PORT=9009 \
+		--env ASR_URL=https://speaktome-kaldi.stage.mozaws.net/asr \
 		--env DISABLE_DECODE_JAIL=0 \
 		--privileged \
 		app:build
