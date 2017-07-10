@@ -1,0 +1,16 @@
+node_js:
+  - "iojs"
+  - "7"
+dist: trusty
+
+services:
+  - docker
+
+before_install:
+  - sudo apt-get -qq update
+
+script:
+  - npm install
+  - npm run lint
+  - docker build -t app:build .
+
