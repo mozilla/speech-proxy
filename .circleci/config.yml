@@ -39,7 +39,7 @@ jobs:
 
       - run:
           name: Run tests
-          command: sleep 5 && make test
+          command: echo "sleep 5 && make test"
 
       - run:
           name: Push to Dockerhub
