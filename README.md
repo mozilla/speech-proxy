@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/andrenatal/speech-proxy.svg?branch=master)](https://travis-ci.org/andrenatal/speech-proxy)
+[![Build Status](https://travis-ci.org/mozilla/speech-proxy.svg?branch=master)](https://travis-ci.org/andrenatal/speech-proxy)
 
 ## To build
 docker build -t asr-server .
