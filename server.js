@@ -60,12 +60,12 @@ app.get('/__version__', function (req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.status(200);
   res.write(result);
-  res.end();
+  return res.end();
 });
 
 app.get('/__lbheartbeat__', function (req, res) {
   res.status(200);
-  res.end();
+  return res.end();
 });
 
 app.get('/__heartbeat__', function (req, res) {
@@ -134,7 +134,7 @@ app.use(function (req, res) {
   opusdec.on('error', function (err) {
     process.stderr.write('Failed to start child process:', err, '\n');
     res.status(500);
-    res.end();
+    return res.end();
   });
 
   opusdec.stdin.write(req.body);
