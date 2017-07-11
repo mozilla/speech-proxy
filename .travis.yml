@@ -1,5 +1,4 @@
 node_js:
-  - "iojs"
   - "7"
 dist: trusty
 
