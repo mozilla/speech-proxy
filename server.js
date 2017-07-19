@@ -108,6 +108,13 @@ app.get('/__heartbeat__', function (req, res) {
 });
 
 app.use(function (req, res) {
+
+  // if method is GET we return right away
+  if (req.method === 'GET') {
+    res.status(200);
+    return res.end();
+  }
+
   // then we convert it from opus to raw pcm
   const jailArgs = [
     'firejail',
