@@ -1,5 +1,11 @@
 [![Build Status](https://travis-ci.org/mozilla/speech-proxy.svg?branch=master)](https://travis-ci.org/mozilla/speech-proxy)
 
+This project is the server-side proxy component of the Voice Fill Test Pilot
+experiment.  Roughly, it's the box labeled "speak-to-me node server" in the
+diagram below.
+
+![Rough diagram](/docs/images/servers.png)
+
 ## To build
 docker build -t asr-server .
 
