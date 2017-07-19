@@ -115,6 +115,25 @@ app.use(function (req, res) {
     return res.end();
   }
 
+  // if is not an opus file we return right away
+  const isOpus = req.body[0] === 79 &&
+        req.body[1] === 103 &&
+        req.body[2] === 103 &&
+        req.body[3] === 83 &&
+        req.body[28] === 79 &&
+        req.body[29] === 112 &&
+        req.body[30] === 117 &&
+        req.body[31] === 115 &&
+        req.body[32] === 72 &&
+        req.body[33] === 101 &&
+        req.body[34] === 97 &&
+        req.body[35] === 100;
+
+  if (!isOpus) {
+    res.status(500);
+    return res.end();
+  }
+
   // then we convert it from opus to raw pcm
   const jailArgs = [
     'firejail',
