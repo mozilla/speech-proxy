@@ -27,9 +27,10 @@ const config = {
 
 Joi.assert(config, configSchema);
 
-if (config.s3_bucket) {
-  var S3 = new AWS.S3();
-}
+const S3 = new AWS.S3({
+  region: process.env.AWS_DEFAULT_REGION || 'us-east-1'
+});
+
 
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -191,14 +192,14 @@ app.use(function (req, res) {
       Key: key_base + '/audio.opus'
     };
 
-    S3.putObject(audio_upload_params, (s3_error, s3_response) => {
+    S3.putObject(audio_upload_params, (s3_error) => {
       if (s3_error) {
-        console.log("Failed to upload audio to S3")
+        console.log('Failed to upload audio to S3');
         console.log(s3_error);
         return;
       }
 
-      console.log("Successfully uploaded %s", key_base + '/audio.opus');
+      console.log('Successfully uploaded %s', key_base + '/audio.opus');
     });
   }
 
@@ -229,14 +230,14 @@ app.use(function (req, res) {
         Key: key_base + '/transcript.json'
       };
 
-      S3.putObject(json_upload_params, (s3_error, s3_response) => {
+      S3.putObject(json_upload_params, (s3_error) => {
         if (s3_error) {
-          console.log("Failed to upload json to S3")
+          console.log('Failed to upload json to S3');
           console.log(s3_error);
           return;
         }
 
-        console.log("Successfully uploaded %s", key_base + '/transcript.json');
+        console.log('Successfully uploaded %s', key_base + '/transcript.json');
       });
     }
 
