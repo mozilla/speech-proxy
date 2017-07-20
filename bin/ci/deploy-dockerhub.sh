@@ -28,8 +28,8 @@ if [[ "$DOCKER_DEPLOY" == "true" ]]; then
   # docker tag and push git branch to dockerhub
   if [ -n "$1" ]; then
       [ "$1" == master ] && TAG=latest || TAG="$1"
-      docker tag app:build "mozilla/speaktome:$TAG" ||
-          (echo "Couldn't tag app:build as mozilla/speaktome:$TAG" && false)
+      docker tag speech-proxy:build "mozilla/speaktome:$TAG" ||
+          (echo "Couldn't tag speech-proxy:build as mozilla/speaktome:$TAG" && false)
       retry 3 docker push "mozilla/speaktome:$TAG" ||
           (echo "Couldn't push mozilla/speaktome:$TAG" && false)
       echo "Pushed mozilla/speaktome:$TAG"
