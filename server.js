@@ -6,6 +6,9 @@ const AWS = require('aws-sdk');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cp = require('child_process');
+const mozlog = require('mozlog')({
+  app: 'speech-proxy'
+})('server');
 const request = require('request');
 const Joi = require('joi');
 const fs = require('fs');
@@ -16,14 +19,18 @@ const app = express();
 const configSchema =  Joi.object({
   asr_url: Joi.string(),
   disable_jail: Joi.boolean(),
+  port: Joi.number(),
   s3_bucket: Joi.string().optional()
 });
 
 const config = {
   asr_url: process.env.ASR_URL,
   disable_jail: (process.env.DISABLE_DECODE_JAIL === '1'),
+  port: process.env.PORT || 9001,
   s3_bucket: process.env.S3_BUCKET
 };
+
+mozlog.info('config', config);
 
 Joi.assert(config, configSchema);
 
@@ -31,6 +38,35 @@ const S3 = new AWS.S3({
   region: process.env.AWS_DEFAULT_REGION || 'us-east-1'
 });
 
+app.use((req, res, next) => {
+  const request_start = Date.now();
+  res.locals.request_id = uuid();
+
+  mozlog.info('request.start', {
+    request_id: res.locals.request_id,
+    remote_addr: req.ip,
+    method: req.method,
+    path: req.originalUrl,
+    referrer: req.get('Referrer'),
+    user_agent: req.get('User-Agent')
+  });
+
+  res.once('finish', () => {
+    mozlog.info('request.finish', {
+      request_id: res.locals.request_id,
+      remote_addr: req.ip,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      body: res.get('Content-Length'),
+      time: Date.now() - request_start,
+      referrer: req.get('Referrer'),
+      user_agent: req.get('User-Agent')
+    });
+  });
+
+  next();
+});
 
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -55,21 +91,18 @@ app.use(
   })
 );
 
-app.get('/__version__', function (req, res) {
-  let result = '';
-  if (fs.existsSync('version.json')){
-    result = fs.readFileSync('version.json', 'utf8');
-  }
+app.get('/__version__', function (req, res, next) {
+  fs.readFile('version.json', (read_error, version) => {
+    if (read_error) {
+      return next(read_error);
+    }
 
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200);
-  res.write(result);
-  return res.end();
+    res.json(JSON.parse(version));
+  });
 });
 
 app.get('/__lbheartbeat__', function (req, res) {
-  res.status(200);
-  return res.end();
+  res.json({message: 'Okay'});
 });
 
 app.get('/__heartbeat__', function (req, res) {
@@ -111,14 +144,11 @@ app.get('/__heartbeat__', function (req, res) {
   });
 });
 
-app.use(function (req, res) {
+app.get('/', (req, res) => {
+  res.json({message: 'Okay'});
+});
 
-  // if method is GET we return right away
-  if (req.method === 'GET') {
-    res.status(200);
-    return res.end();
-  }
-
+app.post('*', function (req, res, next) {
   // if is not an opus file we return right away
   const isOpus = req.body[0] === 79 &&
         req.body[1] === 103 &&
@@ -134,8 +164,7 @@ app.use(function (req, res) {
         req.body[35] === 100;
 
   if (!isOpus) {
-    res.status(500);
-    return res.end();
+    return res.status(400).json({message: 'Body should be an Opus audio file'});
   }
 
   // then we convert it from opus to raw pcm
@@ -159,26 +188,31 @@ app.use(function (req, res) {
   } else {
     args = jailArgs.concat(decodeArgs);
   }
+  const opusdec_start = Date.now();
+  mozlog.info('request.opusdec.start', {
+    request_id: res.locals.request_id
+  });
   const opusdec = cp.spawn(args[0], args.slice(1), {stdio: ['pipe', 'pipe', 'pipe']});
 
-  opusdec.on('error', function (err) {
-    process.stderr.write('Failed to start child process:', err, '\n');
-    res.status(500);
-    return res.end();
-  });
+  opusdec.on('error', next);
 
   opusdec.stdin.write(req.body);
   opusdec.stdin.end();
 
   // no-op to not fill up the buffer
+  const opsdec_stderr_buf = [];
   opusdec.stderr.on('data', function (data) {
-    process.stderr.write(data.toString('utf8'));
+    opsdec_stderr_buf.push(data);
   });
 
   opusdec.on('close', function (code) {
+    mozlog.info('request.opusdec.finish', {
+      request_id: res.locals.request_id,
+      time: Date.now() - opusdec_start,
+      stderr: Buffer.concat(opsdec_stderr_buf).toString('utf8')
+    });
     if (code !== 0) {
-      res.status(500);
-      return res.end();
+      next(new Error('opusdec exited with code %d', code));
     }
   });
 
@@ -192,16 +226,40 @@ app.use(function (req, res) {
       Key: key_base + '/audio.opus'
     };
 
+    const s3_request_start = Date.now();
+
+    mozlog.info('request.s3.audio.start', {
+      request_id: res.locals.request_id,
+      key: key_base + '/audio.opus'
+    });
+
     S3.putObject(audio_upload_params, (s3_error) => {
       if (s3_error) {
-        console.log('Failed to upload audio to S3');
-        console.log(s3_error);
-        return;
+        mozlog.info('request.s3.audio.error', {
+          request_id: res.locals.request_id,
+          key: key_base + '/audio.opus',
+          status: s3_error.statusCode,
+          body: req.body.length,
+          time: Date.now() - s3_request_start
+        });
+        return next(s3_error);
       }
 
-      console.log('Successfully uploaded %s', key_base + '/audio.opus');
+      mozlog.info('request.s3.audio.finish', {
+        request_id: res.locals.request_id,
+        key: key_base + '/audio.opus',
+        status: 200,
+        body: req.body.length,
+        time: Date.now() - s3_request_start
+      });
     });
   }
+
+  const asr_request_start = Date.now();
+
+  mozlog.info('request.asr.start', {
+    request_id: res.locals.request_id
+  });
 
   // send to the asr server
   request({
@@ -213,14 +271,22 @@ app.use(function (req, res) {
   }, function (asrErr, asrRes, asrBody) {
     // and send back the results to the client
     if (asrErr) {
-      res.status(502);
-      return res.end();
+      mozlog.info('request.asr.error', {
+        request_id: res.locals.request_id,
+        status: asrRes.statusCode,
+        time: Date.now() - asr_request_start
+      });
+      return next(asrErr);
     }
-    const resBody = asrBody && asrBody.toString('utf8');
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.status(200);
-    res.write(resBody);
+    const resBody = asrBody && asrBody.toString('utf8');
+    res.json(JSON.parse(resBody));
+
+    mozlog.info('request.asr.finish', {
+      request_id: res.locals.request_id,
+      status: 200,
+      time: Date.now() - asr_request_start
+    });
 
     if (config.s3_bucket) {
       const json_upload_params = {
@@ -230,24 +296,49 @@ app.use(function (req, res) {
         Key: key_base + '/transcript.json'
       };
 
+      const s3_request_start = Date.now();
+
+      mozlog.info('request.s3.json.start', {
+        request_id: res.locals.request_id,
+        key: key_base + '/transcript.json'
+      });
+
       S3.putObject(json_upload_params, (s3_error) => {
         if (s3_error) {
-          console.log('Failed to upload json to S3');
-          console.log(s3_error);
-          return;
+          mozlog.info('request.s3.json.error', {
+            request_id: res.locals.request_id,
+            key: key_base + '/transcript.json',
+            status: s3_error.statusCode,
+            time: Date.now() - s3_request_start
+          });
+          return next(s3_error);
         }
 
-        console.log('Successfully uploaded %s', key_base + '/transcript.json');
+        mozlog.info('request.s3.json.finish', {
+          request_id: res.locals.request_id,
+          key: key_base + '/transcript.json',
+          status: 200,
+          time: Date.now() - s3_request_start
+        });
       });
     }
-
-    return res.end();
   });
 });
 
-if (config.disable_jail) {
-  process.stdout.write('Opus decode jail disabled.\n');
-}
-const port = process.env.PORT || 9001;
-app.listen(port);
-process.stdout.write('HTTP and BinaryJS server started on port ' + port + '\n');
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  mozlog.info('request.error', {
+    request_id: res.locals.request_id,
+    error: err
+  });
+
+  res.status(500).json({
+    message: err
+  });
+});
+
+const server = app.listen(config.port);
+mozlog.info('listen');
+
+process.on('SIGINT', () => { server.close(); });
+process.on('SIGTERM', () => { server.close(); });
+server.once('close', () => { mozlog.info('shutdown'); });
