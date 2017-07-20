@@ -145,7 +145,7 @@ app.get('/__heartbeat__', function (req, res) {
 });
 
 app.get('/', (req, res) => {
-  res.json({message: "Okay"});
+  res.json({message: 'Okay'});
 });
 
 app.post('*', function (req, res, next) {
