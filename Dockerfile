@@ -8,6 +8,7 @@ RUN groupadd --gid 10001 app && \
 WORKDIR /app
 
 COPY package.json package.json
+COPY package-lock.json package-lock.json
 
 # Install updates
 RUN apt-get update && \
