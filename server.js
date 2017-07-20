@@ -144,6 +144,10 @@ app.get('/__heartbeat__', function (req, res) {
   });
 });
 
+app.get('/', (req, res) => {
+  res.json({message: "Okay"});
+});
+
 app.post('*', function (req, res, next) {
   // if is not an opus file we return right away
   const isOpus = req.body[0] === 79 &&
