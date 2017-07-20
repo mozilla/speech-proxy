@@ -1,32 +1,35 @@
 /**
  * Created by anatal on 3/17/17.
  */
-const http = require('http');
-// Serve client side statically
+
+const AWS = require('aws-sdk');
 const express = require('express');
 const bodyParser = require('body-parser');
-const process = require('process');
 const cp = require('child_process');
 const request = require('request');
 const Joi = require('joi');
 const fs = require('fs');
+const uuid = require('uuid/v4');
 
 const app = express();
-const server = http.createServer(app);
-
-const ASR_URL = process.env.ASR_URL;
 
 const configSchema =  Joi.object({
   asr_url: Joi.string(),
-  disable_jail: Joi.boolean()
+  disable_jail: Joi.boolean(),
+  s3_bucket: Joi.string().optional()
 });
 
 const config = {
-  asr_url: ASR_URL,
-  disable_jail: (process.env.DISABLE_DECODE_JAIL === '1')
+  asr_url: process.env.ASR_URL,
+  disable_jail: (process.env.DISABLE_DECODE_JAIL === '1'),
+  s3_bucket: process.env.S3_BUCKET
 };
 
 Joi.assert(config, configSchema);
+
+if (config.s3_bucket) {
+  var S3 = new AWS.S3();
+}
 
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -76,7 +79,7 @@ app.get('/__heartbeat__', function (req, res) {
   }
   // send to the asr server
   request({
-    url: ASR_URL,
+    url: config.asr_url,
     method: 'POST',
     body: opusbytes,
     headers: {'Content-Type': 'application/octet-stream'},
@@ -178,6 +181,27 @@ app.use(function (req, res) {
     }
   });
 
+  const key_uuid = uuid();
+  const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
+  if (config.s3_bucket) {
+    const audio_upload_params = {
+      Body: req.body,
+      Bucket: config.s3_bucket,
+      ContentType: 'audio/opus',
+      Key: key_base + '/audio.opus'
+    };
+
+    S3.putObject(audio_upload_params, (s3_error, s3_response) => {
+      if (s3_error) {
+        console.log("Failed to upload audio to S3")
+        console.log(s3_error);
+        return;
+      }
+
+      console.log("Successfully uploaded %s", key_base + '/audio.opus');
+    });
+  }
+
   // send to the asr server
   request({
     url: config.asr_url,
@@ -196,6 +220,26 @@ app.use(function (req, res) {
     res.setHeader('Content-Type', 'text/plain');
     res.status(200);
     res.write(resBody);
+
+    if (config.s3_bucket) {
+      const json_upload_params = {
+        Body: resBody,
+        Bucket: config.s3_bucket,
+        ContentType: 'application/json',
+        Key: key_base + '/transcript.json'
+      };
+
+      S3.putObject(json_upload_params, (s3_error, s3_response) => {
+        if (s3_error) {
+          console.log("Failed to upload json to S3")
+          console.log(s3_error);
+          return;
+        }
+
+        console.log("Successfully uploaded %s", key_base + '/transcript.json');
+      });
+    }
+
     return res.end();
   });
 });
@@ -204,5 +248,5 @@ if (config.disable_jail) {
   process.stdout.write('Opus decode jail disabled.\n');
 }
 const port = process.env.PORT || 9001;
-server.listen(port);
+app.listen(port);
 process.stdout.write('HTTP and BinaryJS server started on port ' + port + '\n');
