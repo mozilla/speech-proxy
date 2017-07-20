@@ -98,11 +98,11 @@ app.get('/__version__', function (req, res, next) {
     }
 
     res.json(JSON.parse(version));
-  })
+  });
 });
 
 app.get('/__lbheartbeat__', function (req, res) {
-  res.json({"message": "Okay"});
+  res.json({message: 'Okay'});
 });
 
 app.get('/__heartbeat__', function (req, res) {
@@ -160,7 +160,7 @@ app.post('*', function (req, res, next) {
         req.body[35] === 100;
 
   if (!isOpus) {
-    return res.status(400).json({message: "Body should be an Opus audio file"})
+    return res.status(400).json({message: 'Body should be an Opus audio file'});
   }
 
   // then we convert it from opus to raw pcm
@@ -196,7 +196,7 @@ app.post('*', function (req, res, next) {
   opusdec.stdin.end();
 
   // no-op to not fill up the buffer
-  let opsdec_stderr_buf = [];
+  const opsdec_stderr_buf = [];
   opusdec.stderr.on('data', function (data) {
     opsdec_stderr_buf.push(data);
   });
@@ -321,7 +321,7 @@ app.post('*', function (req, res, next) {
   });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   mozlog.info('request.error', {
     request_id: res.locals.request_id,
     error: err
