@@ -41,7 +41,7 @@ jobs:
           name: Run tests
           command: echo "sleep 5 && make test"
 
-      - run:
+      - deploy:
           name: Push to Dockerhub
           command: |
             # set DOCKER_DEPLOY=true in Circle UI to push to Dockerhub
@@ -51,6 +51,8 @@ jobs:
               bin/ci/deploy-dockerhub.sh "circle_build_$CIRCLE_BUILD_NUM"
             fi
 
+            # $CIRCLE_TAG doesn't exist anymore
+            set +e
             git describe --exact-match
             if [ $? == 0 ]; then
               bin/ci/deploy-dockerhub.sh "`git describe`"
