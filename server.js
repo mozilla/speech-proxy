@@ -273,7 +273,6 @@ app.post('*', function (req, res, next) {
     if (asrErr) {
       mozlog.info('request.asr.error', {
         request_id: res.locals.request_id,
-        status: asrRes.statusCode,
         time: Date.now() - asr_request_start
       });
       return next(asrErr);
