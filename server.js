@@ -279,7 +279,15 @@ app.post('*', function (req, res, next) {
     }
 
     const resBody = asrBody && asrBody.toString('utf8');
-    res.json(JSON.parse(resBody));
+    try {
+      res.json(JSON.parse(resBody));
+    } catch (e) {
+      mozlog.info('request.asr.error', {
+        request_id: res.locals.request_id,
+        time: Date.now() - asr_request_start
+      });
+      return res.status(500).json({error: 'Internal STT Server Error'});
+    }
 
     mozlog.info('request.asr.finish', {
       request_id: res.locals.request_id,
