@@ -148,6 +148,13 @@ app.get('/', (req, res) => {
   res.json({message: 'Okay'});
 });
 
+app.post('/raw', function (req, res, next) {  // eslint-disable-line no-unused-vars
+  const key_uuid = uuid();
+  const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
+
+  sendToKaldi(req.body, res, next, key_base);
+});
+
 app.post('*', function (req, res, next) {
   // if is not an opus file we return right away
   const isOpus = req.body[0] === 79 &&
@@ -255,17 +262,31 @@ app.post('*', function (req, res, next) {
     });
   }
 
-  const asr_request_start = Date.now();
+  sendToKaldi(opusdec.stdout, res, next, key_base);
+});
 
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  mozlog.info('request.error', {
+    request_id: res.locals.request_id,
+    error: err
+  });
+
+  res.status(500).json({
+    message: err
+  });
+});
+
+function sendToKaldi(audioBuffer, res, next, key_base) {
+  const asr_request_start = Date.now();
+  
   mozlog.info('request.asr.start', {
     request_id: res.locals.request_id
   });
-
-  // send to the asr server
+  
   request({
-    url: config.asr_url,
+    url: 'http://52.53.97.165/asr',  //TODO: REMOVE THIS HARDCODE
     method: 'POST',
-    body: opusdec.stdout,
+    body: audioBuffer,
     headers: {'Content-Type': 'application/octet-stream'},
     qs: {'endofspeech': 'false', 'nbest': 10}
   }, function (asrErr, asrRes, asrBody) {
@@ -277,7 +298,7 @@ app.post('*', function (req, res, next) {
       });
       return next(asrErr);
     }
-
+  
     const resBody = asrBody && asrBody.toString('utf8');
     try {
       res.json(JSON.parse(resBody));
@@ -330,18 +351,7 @@ app.post('*', function (req, res, next) {
       });
     }
   });
-});
-
-app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
-  mozlog.info('request.error', {
-    request_id: res.locals.request_id,
-    error: err
-  });
-
-  res.status(500).json({
-    message: err
-  });
-});
+}
 
 const server = app.listen(config.port);
 mozlog.info('listen');
