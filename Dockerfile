@@ -8,11 +8,14 @@ RUN groupadd --gid 10001 app && \
 # Install updates & firejail
 RUN apt-get update && \
     apt-get install -y \
-        libgmp-dev git python build-essential opus-tools && \
+      yasm libvpx-dev libgmp-dev git python build-essential opus-tools && \
     git clone https://github.com/netblue30/firejail.git /app/firejail && \
     cd /app/firejail && \
     ./configure && make && make install-strip && \
-    rm -rf /app/firejail && \
+    git clone https://github.com/FFmpeg/FFmpeg /app/ffmpeg && \
+    cd /app/ffmpeg && git checkout release/3.4 && \
+    ./configure  --enable-libvpx && make && make install && \
+    rm -rf /app/firejail && rm -rf /app/ffmpeg && \
     apt remove -y libgmp-dev git python build-essential && \
     apt-get autoremove -y && \
     apt-get clean

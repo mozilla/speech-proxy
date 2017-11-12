@@ -11,6 +11,7 @@ run:
 
 test:
 	curl -i -X POST http://localhost:9001/ -H 'Content-Type: audio/opus' --data-binary @speech_orig.opus
+	curl -i -X POST http://localhost:9001/ -H 'Content-Type: audio/webm' --data-binary @webm.webm
 
 sh:
 	docker exec -it $CONTAINER_ID bash

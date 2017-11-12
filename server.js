@@ -13,6 +13,7 @@ const request = require('request');
 const Joi = require('joi');
 const fs = require('fs');
 const uuid = require('uuid/v4');
+const fileType = require('file-type');
 
 const app = express();
 
@@ -149,23 +150,8 @@ app.get('/', (req, res) => {
 });
 
 app.post('*', function (req, res, next) {
-  // if is not an opus file we return right away
-  const isOpus = req.body[0] === 79 &&
-        req.body[1] === 103 &&
-        req.body[2] === 103 &&
-        req.body[3] === 83 &&
-        req.body[28] === 79 &&
-        req.body[29] === 112 &&
-        req.body[30] === 117 &&
-        req.body[31] === 115 &&
-        req.body[32] === 72 &&
-        req.body[33] === 101 &&
-        req.body[34] === 97 &&
-        req.body[35] === 100;
 
-  if (!isOpus) {
-    return res.status(400).json({message: 'Body should be an Opus audio file'});
-  }
+  let decodeArgs;
 
   // then we convert it from opus to raw pcm
   const jailArgs = [
@@ -174,13 +160,25 @@ app.post('*', function (req, res, next) {
     '--debug',
     '--force'
   ];
-  const decodeArgs = [
-    'opusdec',
-    '--rate',
-    '16000',
-    '-',
-    '-'
-  ];
+
+  if (fileType(req.body) === null) {
+    return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
+  } else if (fileType(req.body).ext === 'webm') {
+    decodeArgs = [
+      'ffmpeg', '-i', '-', '-c:v', 'libvpx', '-f' , 's16le', '-ar',
+      '16000', '-acodec',  'pcm_s16le', '-'
+    ];
+  } else if (fileType(req.body).ext === 'opus') {
+    decodeArgs = [
+      'opusdec',
+      '--rate',
+      '16000',
+      '-',
+      '-'
+    ];
+  } else {
+    return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
+  }
 
   let args = null;
   if (config.disable_jail) {
