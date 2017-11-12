@@ -1,11 +1,12 @@
 {
   "name": "speech-proxy",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "author": "Mozilla",
   "dependencies": {
     "aws-sdk": "^2.86.0",
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
+    "file-type": "^7.2.0",
     "joi": "^10.6.0",
     "mozlog": "^2.1.1",
     "request": "^2.83.0",
