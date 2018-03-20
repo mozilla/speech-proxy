@@ -119,29 +119,18 @@ app.get('/__heartbeat__', function (req, res) {
     body: opusbytes,
     headers: {'Content-Type': 'application/octet-stream'},
     qs: {'endofspeech': 'false', 'nbest': 10}
-  }, function (asrErr, asrRes, asrBody) {
+  }, function (asrErr, asrRes) {
     // and send back the results to the client
     if (asrErr) {
       res.status(500);
       return res.end();
-    }
-
-    let jsonResults;
-    try {
-      jsonResults = JSON.parse(asrBody.toString('utf8'));
-      for (const idx in jsonResults.data) {
-        if (jsonResults.data[idx].text === 'HEART BEAT') {
-          res.status(200);
-          return res.end();
-        }
-      }
-    } catch (e) {
+    } else if (asrRes.statusCode === 200) {
+      res.status(200);
+      return res.end();
+    } else {
       res.status(500);
       return res.end();
     }
-
-    res.status(500);
-    return res.end();
   });
 });
 
