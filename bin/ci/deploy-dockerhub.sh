@@ -23,7 +23,7 @@ function retry() {
 
 if [[ "$DOCKER_DEPLOY" == "true" ]]; then
   # configure docker creds
-  retry 3 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  retry 3 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
   # docker tag and push git branch to dockerhub
   if [ -n "$1" ]; then
