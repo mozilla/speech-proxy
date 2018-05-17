@@ -1,16 +1,13 @@
 version: 2
 jobs:
-  build:
-    machine: true
-    working_directory: ~/speaktome
+  build_and_push:
+    docker:
+      - image: docker:stable
+    environment:
+      APP_NAME: "speaktome"
     steps:
-      - run:
-          name: Install essential packages
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y ca-certificates curl build-essential make git
-
       - checkout
+      - setup_remote_docker
 
       - run:
           name: Create version.json
@@ -18,43 +15,29 @@ jobs:
             # create a version.json per https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
             printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' \
             "$CIRCLE_SHA1" \
-            "`git describe`" \
+            "$CIRCLE_TAG" \
             "$CIRCLE_PROJECT_USERNAME" \
             "$CIRCLE_PROJECT_REPONAME" \
             "$CIRCLE_BUILD_URL" > version.json
-
-      - store_artifacts:
-          path: version.json
 
       - run:
           name: Build Docker image
           command: |
             docker info
-            make build
+            docker build -t ${APP_NAME}:build .
 
       - run:
-          name: Run the app
-          command: make run
-          background: true
-
-      - run:
-          name: Run tests
-          command: echo "sleep 5 && make test"
-
-      - deploy:
           name: Push to Dockerhub
           command: |
-            # set DOCKER_DEPLOY=true in Circle UI to push to Dockerhub
-            export DOCKER_DEPLOY="${DOCKER_DEPLOY:-false}"
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              bin/ci/deploy-dockerhub.sh latest
+            echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin
+            export DOCKER_IMAGE="mozilla/${APP_NAME}:latest"
+            if [ -n "${CIRCLE_TAG}" ]; then
+                export DOCKER_IMAGE="mozilla/${APP_NAME}:${CIRCLE_TAG}"
             fi
 
-            # $CIRCLE_TAG doesn't exist anymore
-            set +e
-            git describe --exact-match
-            if [ $? == 0 ]; then
-              bin/ci/deploy-dockerhub.sh "`git describe`"
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                docker tag "${APP_NAME}:build" "${DOCKER_IMAGE}"
+                docker push "${DOCKER_IMAGE}"
             fi
 
 workflows:
@@ -68,9 +51,9 @@ workflows:
 
   # see: https://circleci.com/docs/2.0/workflows/#git-tag-job-execution
 
-  build-test-push:
+  build_and_push:
     jobs:
-      - build:
+      - build_and_push:
           filters:
             tags:
               only: /.*/
