@@ -29,13 +29,13 @@ jobs:
       - run:
           name: Push to Dockerhub
           command: |
-            echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin
             export DOCKER_IMAGE="mozilla/${APP_NAME}:latest"
             if [ -n "${CIRCLE_TAG}" ]; then
                 export DOCKER_IMAGE="mozilla/${APP_NAME}:${CIRCLE_TAG}"
             fi
 
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin
                 docker tag "${APP_NAME}:build" "${DOCKER_IMAGE}"
                 docker push "${DOCKER_IMAGE}"
             fi
