@@ -3,18 +3,18 @@
   "version": "1.0.6",
   "author": "Mozilla",
   "dependencies": {
-    "aws-sdk": "^2.276.1",
+    "aws-sdk": "^2.287.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
-    "file-type": "^7.7.1",
-    "joi": "^10.6.0",
+    "file-type": "^8.1.0",
+    "joi": "^13.4.0",
     "mozlog": "^2.2.0",
     "request": "^2.87.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
-    "prettier": "^1.13.7"
+    "prettier": "^1.14.0"
   },
   "license": "MPL-2.0",
   "main": "server.js",
