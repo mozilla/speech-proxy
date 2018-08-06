@@ -152,7 +152,7 @@ app.post('*', function (req, res, next) {
 
   if (fileType(req.body) === null) {
     return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
-  } else if (fileType(req.body).ext === 'webm') {
+  } else if ((fileType(req.body).ext === 'webm') || (fileType(req.body).ext === '3gp')) {
     decodeArgs = [
       'ffmpeg', '-i', '-', '-c:v', 'libvpx', '-f' , 's16le', '-ar',
       '16000', '-acodec',  'pcm_s16le', '-'
