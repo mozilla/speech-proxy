@@ -1,6 +1,6 @@
 {
   "name": "speech-proxy",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "author": "Mozilla",
   "dependencies": {
     "aws-sdk": "^2.287.0",
