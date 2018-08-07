@@ -2,7 +2,7 @@ version: 2
 jobs:
   build_and_push:
     docker:
-      - image: docker:stable
+      - image: docker:stable-git
     environment:
       APP_NAME: "speaktome"
     steps:
