@@ -11,6 +11,7 @@ before_install:
 script:
   - npm install
   - npm run lint
+  - CI=1 npm run lint:deps
   - docker build -t speech-proxy:build .
 
 notifications:
