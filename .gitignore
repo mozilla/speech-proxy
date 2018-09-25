@@ -39,3 +39,4 @@ jspm_packages
 .idea/speech-proxy.iml
 .idea/inspectionProfiles/Project_Default.xml
 .idea/jsLinters/jshint.xml
+/bin/audit-filter
