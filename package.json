@@ -22,6 +22,7 @@
   "scripts": {
     "format": "prettier server.js --single-quote --write",
     "lint": "eslint .",
+    "lint:deps": "./bin/filtered_npm_audit.sh",
     "start": "node server",
     "test": "npm run lint"
   }
