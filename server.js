@@ -17,6 +17,13 @@ const fileType = require('file-type');
 
 const app = express();
 
+const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\\/\.;:]{0,1024}$');
+
+const languages = (() => {
+  const contents = fs.readFileSync('languages.json');
+  return JSON.parse(contents.toString('utf8').toLowerCase());
+})();
+
 const configSchema =  Joi.object({
   asr_url: Joi.string(),
   disable_jail: Joi.boolean(),
@@ -34,6 +41,63 @@ const config = {
 mozlog.info('config', config);
 
 Joi.assert(config, configSchema);
+
+const validateHeaders = (headers) => {
+
+  // validate the language
+  if (headers['accept-language'] !== undefined) {
+    const lang_header = headers['accept-language'].toLowerCase();
+
+    // if the passed language contains anything different from two (eg. pt)
+    // or five (eg. pt-br) chars, we deny
+    if (lang_header.length !== 2 && lang_header.length !== 5) {
+      return 'accept-language';
+    }
+
+    // if the passed language contains five chars, (eg. pt-br)
+    // we try to match the exact key in the json, and if we find, we accept
+    if (lang_header.length === 5 && languages[lang_header] === undefined) {
+      return 'accept-language';
+    }
+
+    // if the passed language contains two chars, we try to find a correspondent
+    // substring in the json's key and if it matches, we accept
+    if (lang_header.length === 2) {
+      let match_lang = false;
+      for (const lang in languages) {
+        if (lang.substring(0,2) === lang_header) {
+          match_lang = true;
+          break;
+        }
+      }
+      if (!match_lang) {
+        return 'accept-language';
+      }
+    }
+  }
+
+  // validate storesample
+  if ((headers['store-sample'] !== undefined) &&  ((headers['store-sample'] !== '1') && (headers['store-sample'] !== '0'))) {
+    return 'store-sample';
+  }
+
+  // validate storetranscription
+  if ((headers['store-transcription'] !== undefined) &&  ((headers['store-transcription'] !== '1') && (headers['store-transcription'] !== '0'))) {
+    return 'store-transcription';
+  }
+
+  // validate useragent
+  if ((headers['user-agent'] !== undefined) && (!regexUA.test(headers['user-agent']))) {
+    return 'user-agent';
+  }
+
+  // validate producttag
+  if ((headers['product-tag'] !== undefined) && (!regexUA.test(headers['product-tag']))) {
+    return 'product-tag';
+  }
+
+  return null;
+};
 
 const S3 = new AWS.S3({
   region: process.env.AWS_DEFAULT_REGION || 'us-east-1'
@@ -150,6 +214,24 @@ app.post('*', function (req, res, next) {
     '--force'
   ];
 
+  const header_validation = validateHeaders(req.headers);
+
+  if (header_validation !== null) {
+    // convert the headers to hex to log it
+    const headers = JSON.stringify(req.headers);
+    const hex = [];
+    for (let n = 0, l = headers.length; n < l; n ++) {
+      const hexval = Number(headers.charCodeAt(n)).toString(16);
+      hex.push(hexval);
+    }
+
+    mozlog.info('request.header.error', {
+      request_id: res.locals.request_id,
+      error: hex.join('')
+    });
+    return res.status(400).json({message: 'Bad header:' + header_validation});
+  }
+
   if (fileType(req.body) === null) {
     return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
   } else if ((fileType(req.body).ext === 'webm') || (fileType(req.body).ext === '3gp')) {
@@ -192,6 +274,53 @@ app.post('*', function (req, res, next) {
     opsdec_stderr_buf.push(data);
   });
 
+  const key_uuid = uuid();
+  const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
+
+  // assemble and store the metadata file
+  const metadata = {'language': req.headers['accept-language'],
+    'storesample': req.headers['store-sample'] !== null ? req.headers['store-sample'] : '1',
+    'storetranscription': req.headers['store-transcription'] !== null ? req.headers['store-transcription'] : '1',
+    'useragent': req.headers['user-agent'],
+    'producttag': req.headers['product-tag']};
+
+  if (config.s3_bucket) {
+    const metadata_upload_params = {
+      Body: metadata,
+      Bucket: config.s3_bucket,
+      ContentType: 'application/json',
+      Key: key_base + '/metadata.json'
+    };
+
+    const s3_request_start = Date.now();
+
+    mozlog.info('request.s3.audio.start', {
+      request_id: res.locals.request_id,
+      key: key_base + '/metadata.json'
+    });
+
+    S3.putObject(metadata_upload_params, (s3_error) => {
+      if (s3_error) {
+        mozlog.info('request.s3.audio.error', {
+          request_id: res.locals.request_id,
+          key: key_base + '/metadata.json',
+          status: s3_error.statusCode,
+          body: req.body.length,
+          time: Date.now() - s3_request_start
+        });
+        return next(s3_error);
+      }
+
+      mozlog.info('request.s3.audio.finish', {
+        request_id: res.locals.request_id,
+        key: key_base + '/metadata.json',
+        status: 200,
+        body: req.body.length,
+        time: Date.now() - s3_request_start
+      });
+    });
+  }
+
   opusdec.on('close', function (code) {
     mozlog.info('request.opusdec.finish', {
       request_id: res.locals.request_id,
@@ -203,9 +332,7 @@ app.post('*', function (req, res, next) {
     }
   });
 
-  const key_uuid = uuid();
-  const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
-  if (config.s3_bucket) {
+  if (config.s3_bucket && metadata.storesample === 1) {
     const audio_upload_params = {
       Body: req.body,
       Bucket: config.s3_bucket,
@@ -253,7 +380,7 @@ app.post('*', function (req, res, next) {
     url: config.asr_url,
     method: 'POST',
     body: opusdec.stdout,
-    headers: {'Content-Type': 'application/octet-stream'},
+    headers: {'Content-Type': 'application/octet-stream', 'Accept-Language': metadata.language},
     qs: {'endofspeech': 'false', 'nbest': 10}
   }, function (asrErr, asrRes, asrBody) {
     // and send back the results to the client
@@ -282,7 +409,7 @@ app.post('*', function (req, res, next) {
       time: Date.now() - asr_request_start
     });
 
-    if (config.s3_bucket) {
+    if (config.s3_bucket && metadata.storetranscription === 1) {
       const json_upload_params = {
         Body: resBody,
         Bucket: config.s3_bucket,
