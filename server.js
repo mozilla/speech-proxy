@@ -17,7 +17,7 @@ const fileType = require('file-type');
 
 const app = express();
 
-const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\\/\.;:]{0,1024}$');
+const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\\/\.;:]{0,1024}$'); // eslint-disable-line
 
 const languages = (() => {
   const contents = fs.readFileSync('languages.json');
