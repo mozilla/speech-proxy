@@ -286,7 +286,7 @@ app.post('*', function (req, res, next) {
 
   if (config.s3_bucket) {
     const metadata_upload_params = {
-      Body: metadata,
+      Body: JSON.stringify(metadata),
       Bucket: config.s3_bucket,
       ContentType: 'application/json',
       Key: key_base + '/metadata.json'
