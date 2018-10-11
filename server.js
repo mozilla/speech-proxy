@@ -332,7 +332,7 @@ app.post('*', function (req, res, next) {
     }
   });
 
-  if (config.s3_bucket && metadata.storesample === 1) {
+  if (config.s3_bucket && metadata.storesample === '1') {
     const audio_upload_params = {
       Body: req.body,
       Bucket: config.s3_bucket,
@@ -409,7 +409,7 @@ app.post('*', function (req, res, next) {
       time: Date.now() - asr_request_start
     });
 
-    if (config.s3_bucket && metadata.storetranscription === 1) {
+    if (config.s3_bucket && metadata.storetranscription === '1') {
       const json_upload_params = {
         Body: resBody,
         Bucket: config.s3_bucket,
