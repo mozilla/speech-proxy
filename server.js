@@ -45,19 +45,19 @@ Joi.assert(config, configSchema);
 const validateHeaders = (headers) => {
 
   // validate the language
-  if (headers['accept-language'] !== undefined) {
-    const lang_header = headers['accept-language'].toLowerCase();
+  if (headers['accept-language-stt'] !== undefined) {
+    const lang_header = headers['accept-language-stt'].toLowerCase();
 
     // if the passed language contains anything different from two (eg. pt)
     // or five (eg. pt-br) chars, we deny
     if (lang_header.length !== 2 && lang_header.length !== 5) {
-      return 'accept-language';
+      return 'accept-language-stt';
     }
 
     // if the passed language contains five chars, (eg. pt-br)
     // we try to match the exact key in the json, and if we find, we accept
     if (lang_header.length === 5 && languages[lang_header] === undefined) {
-      return 'accept-language';
+      return 'accept-language-stt';
     }
 
     // if the passed language contains two chars, we try to find a correspondent
@@ -71,7 +71,7 @@ const validateHeaders = (headers) => {
         }
       }
       if (!match_lang) {
-        return 'accept-language';
+        return 'accept-language-stt';
       }
     }
   }
@@ -278,7 +278,7 @@ app.post('*', function (req, res, next) {
   const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
 
   // assemble and store the metadata file
-  const metadata = {'language': req.headers['accept-language'],
+  const metadata = {'language': req.headers['accept-language-stt'],
     'storesample': req.headers['store-sample'] !== null ? req.headers['store-sample'] : '1',
     'storetranscription': req.headers['store-transcription'] !== null ? req.headers['store-transcription'] : '1',
     'useragent': req.headers['user-agent'],
