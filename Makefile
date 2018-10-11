@@ -10,8 +10,8 @@ run:
 		speech-proxy:build
 
 test:
-	curl -w "@curl-format.txt" -H 'Accept-Language: en-us' -H 'Store-Sample: 1' -H 'Store-Transcription: 1' -H 'Product-Tag: shell-curl' -X POST http://localhost:9001/ -H 'Content-Type: audio/opus' --data-binary @speech_orig.opus
-	curl -w "@curl-format.txt" -H 'Accept-Language: en-us' -H 'Store-Sample: 1' -H 'Store-Transcription: 1' -H 'Product-Tag: shell-curl'  -X POST http://localhost:9001/ -H 'Content-Type: audio/webm' --data-binary @webm.webm
+	curl -w "@curl-format.txt" -H 'Accept-Language-STT: en-us' -H 'Store-Sample: 1' -H 'Store-Transcription: 1' -H 'Product-Tag: shell-curl' -X POST http://localhost:9001/ -H 'Content-Type: audio/opus' --data-binary @speech_orig.opus
+	curl -w "@curl-format.txt" -H 'Accept-Language-STT: en-us' -H 'Store-Sample: 1' -H 'Store-Transcription: 1' -H 'Product-Tag: shell-curl'  -X POST http://localhost:9001/ -H 'Content-Type: audio/webm' --data-binary @webm.webm
 
 sh:
 	docker exec -it $CONTAINER_ID bash
