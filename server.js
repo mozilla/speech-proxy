@@ -86,11 +86,6 @@ const validateHeaders = (headers) => {
     return 'store-transcription';
   }
 
-  // validate useragent
-  if ((headers['user-agent'] !== undefined) && (!regexUA.test(headers['user-agent']))) {
-    return 'user-agent';
-  }
-
   // validate producttag
   if ((headers['product-tag'] !== undefined) && (!regexUA.test(headers['product-tag']))) {
     return 'product-tag';
