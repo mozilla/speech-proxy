@@ -274,8 +274,8 @@ app.post('*', function (req, res, next) {
 
   // assemble and store the metadata file
   const metadata = {'language': req.headers['accept-language-stt'],
-    'storesample': req.headers['store-sample'] !== null ? req.headers['store-sample'] : '1',
-    'storetranscription': req.headers['store-transcription'] !== null ? req.headers['store-transcription'] : '1',
+    'storesample': req.headers['store-sample'] !== undefined ? req.headers['store-sample'] : '1',
+    'storetranscription': req.headers['store-transcription'] !== undefined ? req.headers['store-transcription'] : '1',
     'useragent': req.headers['user-agent'],
     'producttag': req.headers['product-tag']};
 
