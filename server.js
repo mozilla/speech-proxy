@@ -49,14 +49,17 @@ const validateHeaders = (headers) => {
     const lang_header = headers['accept-language-stt'].toLowerCase();
 
     // if the passed language contains anything different from two (eg. pt)
-    // or five (eg. pt-br) chars, we deny
-    if (lang_header.length !== 2 && lang_header.length !== 5) {
+    // or five (eg. pt-br) chars, or eleven (eg. cmn-Hans-CN)
+    // or six (eg.fil-PH)  we deny
+    if (lang_header.length !== 2 && lang_header.length !== 5 &&
+        lang_header.length !== 11 && lang_header.length !== 6) {
       return 'accept-language-stt';
     }
 
     // if the passed language contains five chars, (eg. pt-br)
     // we try to match the exact key in the json, and if we find, we accept
-    if (lang_header.length === 5 && languages[lang_header] === undefined) {
+    if ((lang_header.length === 11 || lang_header.length === 5 ||
+          lang_header.length === 6) && languages[lang_header] === undefined) {
       return 'accept-language-stt';
     }
 
