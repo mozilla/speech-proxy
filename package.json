@@ -13,6 +13,7 @@
     "uuid": "^3.3.2"
   },
   "devDependencies": {
+    "audit-filter": "^0.3.0",
     "eslint": "^4.19.1",
     "prettier": "^1.14.0"
   },
@@ -22,7 +23,7 @@
   "scripts": {
     "format": "prettier server.js --single-quote --write",
     "lint": "eslint .",
-    "lint:deps": "./bin/filtered_npm_audit.sh",
+    "lint:deps": "npm audit --json | audit-filter --nsp-config=.nsprc --audit=-",
     "start": "node server",
     "test": "npm run lint"
   }
