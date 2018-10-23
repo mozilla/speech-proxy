@@ -135,7 +135,17 @@ app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
     'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept'
+    [
+      'Accept',
+      'Accept-Language-STT',
+      'Content-Type',
+      'Origin',
+      'Product-Tag',
+      'Store-Sample',
+      'Store-Transcription',
+      'User-Agent',
+      'X-Requested-With',
+    ].join(',')
   );
 
   // Prevent browsers mistaking user provided content as HTML
