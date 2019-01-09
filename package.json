@@ -3,25 +3,25 @@
   "version": "1.0.10",
   "author": "Mozilla",
   "dependencies": {
-    "aws-sdk": "^2.374.0",
+    "aws-sdk": "^2.287.0",
     "body-parser": "^1.18.3",
-    "express": "^4.16.4",
-    "file-type": "^10.6.0",
-    "joi": "^14.3.0",
+    "express": "^4.16.3",
+    "file-type": "^8.1.0",
+    "joi": "^13.4.0",
     "mozlog": "^2.2.0",
-    "request": "^2.88.0",
+    "request": "^2.87.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "audit-filter": "^0.3.0",
-    "eslint": "^5.10.0",
-    "prettier": "^1.15.3"
+    "eslint": "^4.19.1",
+    "prettier": "^1.14.0"
   },
   "license": "MPL-2.0",
   "main": "server.js",
   "repository": "mozilla/speech-proxy",
   "scripts": {
-    "format": "prettier server.js --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --single-quote --write",
+    "format": "prettier server.js --single-quote --write",
     "lint": "eslint .",
     "lint:deps": "npm audit --json | audit-filter --nsp-config=.nsprc --audit=-",
     "start": "node server",
