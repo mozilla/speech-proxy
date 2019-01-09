@@ -7,7 +7,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cp = require('child_process');
 const mozlog = require('mozlog')({
-  app: 'speech-proxy'
+  app: 'speech-proxy',
 })('server');
 const request = require('request');
 const Joi = require('joi');
@@ -17,25 +17,26 @@ const fileType = require('file-type');
 
 const app = express();
 
-const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\\/\.;:]{0,1024}$'); // eslint-disable-line
+// eslint-disable-next-line no-control-regex
+const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\/.;:]{0,1024}$');
 
 const languages = (() => {
   const contents = fs.readFileSync('languages.json');
   return JSON.parse(contents.toString('utf8').toLowerCase());
 })();
 
-const configSchema =  Joi.object({
+const configSchema = Joi.object({
   asr_url: Joi.string(),
   disable_jail: Joi.boolean(),
   port: Joi.number(),
-  s3_bucket: Joi.string().optional()
+  s3_bucket: Joi.string().optional(),
 });
 
 const config = {
   asr_url: process.env.ASR_URL,
-  disable_jail: (process.env.DISABLE_DECODE_JAIL === '1'),
+  disable_jail: process.env.DISABLE_DECODE_JAIL === '1',
   port: process.env.PORT || 9001,
-  s3_bucket: process.env.S3_BUCKET
+  s3_bucket: process.env.S3_BUCKET,
 };
 
 mozlog.info('config', config);
@@ -43,7 +44,6 @@ mozlog.info('config', config);
 Joi.assert(config, configSchema);
 
 const validateHeaders = (headers) => {
-
   // validate the language
   if (headers['accept-language-stt'] !== undefined) {
     const lang_header = headers['accept-language-stt'].toLowerCase();
@@ -51,15 +51,23 @@ const validateHeaders = (headers) => {
     // if the passed language contains anything different from two (eg. pt)
     // or five (eg. pt-br) chars, or eleven (eg. cmn-Hans-CN)
     // or six (eg.fil-PH)  we deny
-    if (lang_header.length !== 2 && lang_header.length !== 5 &&
-        lang_header.length !== 11 && lang_header.length !== 6) {
+    if (
+      lang_header.length !== 2 &&
+      lang_header.length !== 5 &&
+      lang_header.length !== 11 &&
+      lang_header.length !== 6
+    ) {
       return 'accept-language-stt';
     }
 
     // if the passed language contains five chars, (eg. pt-br)
     // we try to match the exact key in the json, and if we find, we accept
-    if ((lang_header.length === 11 || lang_header.length === 5 ||
-          lang_header.length === 6) && languages[lang_header] === undefined) {
+    if (
+      (lang_header.length === 11 ||
+        lang_header.length === 5 ||
+        lang_header.length === 6) &&
+      languages[lang_header] === undefined
+    ) {
       return 'accept-language-stt';
     }
 
@@ -68,7 +76,7 @@ const validateHeaders = (headers) => {
     if (lang_header.length === 2) {
       let match_lang = false;
       for (const lang in languages) {
-        if (lang.substring(0,2) === lang_header) {
+        if (lang.substring(0, 2) === lang_header) {
           match_lang = true;
           break;
         }
@@ -80,17 +88,28 @@ const validateHeaders = (headers) => {
   }
 
   // validate storesample
-  if ((headers['store-sample'] !== undefined) &&  ((headers['store-sample'] !== '1') && (headers['store-sample'] !== '0'))) {
+  if (
+    headers['store-sample'] !== undefined &&
+    headers['store-sample'] !== '1' &&
+    headers['store-sample'] !== '0'
+  ) {
     return 'store-sample';
   }
 
   // validate storetranscription
-  if ((headers['store-transcription'] !== undefined) &&  ((headers['store-transcription'] !== '1') && (headers['store-transcription'] !== '0'))) {
+  if (
+    headers['store-transcription'] !== undefined &&
+    headers['store-transcription'] !== '1' &&
+    headers['store-transcription'] !== '0'
+  ) {
     return 'store-transcription';
   }
 
   // validate producttag
-  if ((headers['product-tag'] !== undefined) && (!regexUA.test(headers['product-tag']))) {
+  if (
+    headers['product-tag'] !== undefined &&
+    !regexUA.test(headers['product-tag'])
+  ) {
     return 'product-tag';
   }
 
@@ -98,7 +117,7 @@ const validateHeaders = (headers) => {
 };
 
 const S3 = new AWS.S3({
-  region: process.env.AWS_DEFAULT_REGION || 'us-east-1'
+  region: process.env.AWS_DEFAULT_REGION || 'us-east-1',
 });
 
 app.use((req, res, next) => {
@@ -111,7 +130,7 @@ app.use((req, res, next) => {
     method: req.method,
     path: req.originalUrl,
     referrer: req.get('Referrer'),
-    user_agent: req.get('User-Agent')
+    user_agent: req.get('User-Agent'),
   });
 
   res.once('finish', () => {
@@ -124,7 +143,7 @@ app.use((req, res, next) => {
       body: res.get('Content-Length'),
       time: Date.now() - request_start,
       referrer: req.get('Referrer'),
-      user_agent: req.get('User-Agent')
+      user_agent: req.get('User-Agent'),
     });
   });
 
@@ -158,13 +177,13 @@ app.use(function(req, res, next) {
 app.use(
   bodyParser.raw({
     limit: 1024000,
-    type: function () {
+    type: function() {
       return true;
-    }
+    },
   })
 );
 
-app.get('/__version__', function (req, res, next) {
+app.get('/__version__', function(req, res, next) {
   fs.readFile('version.json', (read_error, version) => {
     if (read_error) {
       return next(read_error);
@@ -174,44 +193,46 @@ app.get('/__version__', function (req, res, next) {
   });
 });
 
-app.get('/__lbheartbeat__', function (req, res) {
+app.get('/__lbheartbeat__', function(req, res) {
   res.json({message: 'Okay'});
 });
 
-app.get('/__heartbeat__', function (req, res) {
+app.get('/__heartbeat__', function(req, res) {
   let opusbytes = '';
   const hbfile = 'hb.raw';
-  if (fs.existsSync(hbfile)){
+  if (fs.existsSync(hbfile)) {
     opusbytes = fs.readFileSync(hbfile);
   }
   // send to the asr server
-  request({
-    url: config.asr_url,
-    method: 'POST',
-    body: opusbytes,
-    headers: {'Content-Type': 'application/octet-stream'},
-    qs: {'endofspeech': 'false', 'nbest': 10}
-  }, function (asrErr, asrRes) {
-    // and send back the results to the client
-    if (asrErr) {
-      res.status(500);
-      return res.end();
-    } else if (asrRes.statusCode === 200) {
-      res.status(200);
-      return res.end();
-    } else {
-      res.status(500);
-      return res.end();
+  request(
+    {
+      url: config.asr_url,
+      method: 'POST',
+      body: opusbytes,
+      headers: {'Content-Type': 'application/octet-stream'},
+      qs: {endofspeech: 'false', nbest: 10},
+    },
+    function(asrErr, asrRes) {
+      // and send back the results to the client
+      if (asrErr) {
+        res.status(500);
+        return res.end();
+      } else if (asrRes.statusCode === 200) {
+        res.status(200);
+        return res.end();
+      } else {
+        res.status(500);
+        return res.end();
+      }
     }
-  });
+  );
 });
 
 app.get('/', (req, res) => {
   res.json({message: 'Okay'});
 });
 
-app.post('*', function (req, res, next) {
-
+app.post('*', function(req, res, next) {
   let decodeArgs;
 
   // then we convert it from opus to raw pcm
@@ -219,7 +240,7 @@ app.post('*', function (req, res, next) {
     'firejail',
     '--profile=opusdec.profile',
     '--debug',
-    '--force'
+    '--force',
   ];
 
   const header_validation = validateHeaders(req.headers);
@@ -228,35 +249,46 @@ app.post('*', function (req, res, next) {
     // convert the headers to hex to log it
     const headers = JSON.stringify(req.headers);
     const hex = [];
-    for (let n = 0, l = headers.length; n < l; n ++) {
+    for (let n = 0, l = headers.length; n < l; n++) {
       const hexval = Number(headers.charCodeAt(n)).toString(16);
       hex.push(hexval);
     }
 
     mozlog.info('request.header.error', {
       request_id: res.locals.request_id,
-      error: hex.join('')
+      error: hex.join(''),
     });
     return res.status(400).json({message: 'Bad header:' + header_validation});
   }
 
   if (fileType(req.body) === null) {
-    return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
-  } else if ((fileType(req.body).ext === 'webm') || (fileType(req.body).ext === '3gp')) {
+    return res
+      .status(400)
+      .json({message: 'Body should be an Opus or Webm audio file'});
+  } else if (
+    fileType(req.body).ext === 'webm' ||
+    fileType(req.body).ext === '3gp'
+  ) {
     decodeArgs = [
-      'ffmpeg', '-i', '-', '-c:v', 'libvpx', '-f' , 's16le', '-ar',
-      '16000', '-acodec',  'pcm_s16le', '-'
+      'ffmpeg',
+      '-i',
+      '-',
+      '-c:v',
+      'libvpx',
+      '-f',
+      's16le',
+      '-ar',
+      '16000',
+      '-acodec',
+      'pcm_s16le',
+      '-',
     ];
   } else if (fileType(req.body).ext === 'opus') {
-    decodeArgs = [
-      'opusdec',
-      '--rate',
-      '16000',
-      '-',
-      '-'
-    ];
+    decodeArgs = ['opusdec', '--rate', '16000', '-', '-'];
   } else {
-    return res.status(400).json({message: 'Body should be an Opus or Webm audio file'});
+    return res
+      .status(400)
+      .json({message: 'Body should be an Opus or Webm audio file'});
   }
 
   let args = null;
@@ -267,9 +299,11 @@ app.post('*', function (req, res, next) {
   }
   const opusdec_start = Date.now();
   mozlog.info('request.opusdec.start', {
-    request_id: res.locals.request_id
+    request_id: res.locals.request_id,
   });
-  const opusdec = cp.spawn(args[0], args.slice(1), {stdio: ['pipe', 'pipe', 'pipe']});
+  const opusdec = cp.spawn(args[0], args.slice(1), {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 
   opusdec.on('error', next);
 
@@ -278,33 +312,41 @@ app.post('*', function (req, res, next) {
 
   // no-op to not fill up the buffer
   const opsdec_stderr_buf = [];
-  opusdec.stderr.on('data', function (data) {
+  opusdec.stderr.on('data', function(data) {
     opsdec_stderr_buf.push(data);
   });
 
   const key_uuid = uuid();
-  const key_base = key_uuid.slice(0,2) + '/' + key_uuid;
+  const key_base = key_uuid.slice(0, 2) + '/' + key_uuid;
 
   // assemble and store the metadata file
-  const metadata = {'language': req.headers['accept-language-stt'],
-    'storesample': req.headers['store-sample'] !== undefined ? req.headers['store-sample'] : '1',
-    'storetranscription': req.headers['store-transcription'] !== undefined ? req.headers['store-transcription'] : '1',
-    'useragent': req.headers['user-agent'],
-    'producttag': req.headers['product-tag']};
+  const metadata = {
+    language: req.headers['accept-language-stt'],
+    storesample:
+      req.headers['store-sample'] !== undefined
+        ? req.headers['store-sample']
+        : '1',
+    storetranscription:
+      req.headers['store-transcription'] !== undefined
+        ? req.headers['store-transcription']
+        : '1',
+    useragent: req.headers['user-agent'],
+    producttag: req.headers['product-tag'],
+  };
 
   if (config.s3_bucket) {
     const metadata_upload_params = {
       Body: JSON.stringify(metadata),
       Bucket: config.s3_bucket,
       ContentType: 'application/json',
-      Key: key_base + '/metadata.json'
+      Key: key_base + '/metadata.json',
     };
 
     const s3_request_start = Date.now();
 
     mozlog.info('request.s3.audio.start', {
       request_id: res.locals.request_id,
-      key: key_base + '/metadata.json'
+      key: key_base + '/metadata.json',
     });
 
     S3.putObject(metadata_upload_params, (s3_error) => {
@@ -314,7 +356,7 @@ app.post('*', function (req, res, next) {
           key: key_base + '/metadata.json',
           status: s3_error.statusCode,
           body: req.body.length,
-          time: Date.now() - s3_request_start
+          time: Date.now() - s3_request_start,
         });
         return next(s3_error);
       }
@@ -324,16 +366,16 @@ app.post('*', function (req, res, next) {
         key: key_base + '/metadata.json',
         status: 200,
         body: req.body.length,
-        time: Date.now() - s3_request_start
+        time: Date.now() - s3_request_start,
       });
     });
   }
 
-  opusdec.on('close', function (code) {
+  opusdec.on('close', function(code) {
     mozlog.info('request.opusdec.finish', {
       request_id: res.locals.request_id,
       time: Date.now() - opusdec_start,
-      stderr: Buffer.concat(opsdec_stderr_buf).toString('utf8')
+      stderr: Buffer.concat(opsdec_stderr_buf).toString('utf8'),
     });
     if (code !== 0) {
       next(new Error('opusdec exited with code %d', code));
@@ -345,14 +387,14 @@ app.post('*', function (req, res, next) {
       Body: req.body,
       Bucket: config.s3_bucket,
       ContentType: 'audio/opus',
-      Key: key_base + '/audio.opus'
+      Key: key_base + '/audio.opus',
     };
 
     const s3_request_start = Date.now();
 
     mozlog.info('request.s3.audio.start', {
       request_id: res.locals.request_id,
-      key: key_base + '/audio.opus'
+      key: key_base + '/audio.opus',
     });
 
     S3.putObject(audio_upload_params, (s3_error) => {
@@ -362,7 +404,7 @@ app.post('*', function (req, res, next) {
           key: key_base + '/audio.opus',
           status: s3_error.statusCode,
           body: req.body.length,
-          time: Date.now() - s3_request_start
+          time: Date.now() - s3_request_start,
         });
         return next(s3_error);
       }
@@ -372,7 +414,7 @@ app.post('*', function (req, res, next) {
         key: key_base + '/audio.opus',
         status: 200,
         body: req.body.length,
-        time: Date.now() - s3_request_start
+        time: Date.now() - s3_request_start,
       });
     });
   }
@@ -380,94 +422,106 @@ app.post('*', function (req, res, next) {
   const asr_request_start = Date.now();
 
   mozlog.info('request.asr.start', {
-    request_id: res.locals.request_id
+    request_id: res.locals.request_id,
   });
 
   // send to the asr server
-  request({
-    url: config.asr_url,
-    method: 'POST',
-    body: opusdec.stdout,
-    headers: {'Content-Type': 'application/octet-stream', 'Accept-Language': metadata.language},
-    qs: {'endofspeech': 'false', 'nbest': 10}
-  }, function (asrErr, asrRes, asrBody) {
-    // and send back the results to the client
-    if (asrErr) {
-      mozlog.info('request.asr.error', {
+  request(
+    {
+      url: config.asr_url,
+      method: 'POST',
+      body: opusdec.stdout,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Accept-Language': metadata.language,
+      },
+      qs: {endofspeech: 'false', nbest: 10},
+    },
+    function(asrErr, asrRes, asrBody) {
+      // and send back the results to the client
+      if (asrErr) {
+        mozlog.info('request.asr.error', {
+          request_id: res.locals.request_id,
+          time: Date.now() - asr_request_start,
+        });
+        return next(asrErr);
+      }
+
+      const resBody = asrBody && asrBody.toString('utf8');
+      try {
+        res.json(JSON.parse(resBody));
+      } catch (e) {
+        mozlog.info('request.asr.error', {
+          request_id: res.locals.request_id,
+          time: Date.now() - asr_request_start,
+        });
+        return res.status(500).json({error: 'Internal STT Server Error'});
+      }
+
+      mozlog.info('request.asr.finish', {
         request_id: res.locals.request_id,
-        time: Date.now() - asr_request_start
-      });
-      return next(asrErr);
-    }
-
-    const resBody = asrBody && asrBody.toString('utf8');
-    try {
-      res.json(JSON.parse(resBody));
-    } catch (e) {
-      mozlog.info('request.asr.error', {
-        request_id: res.locals.request_id,
-        time: Date.now() - asr_request_start
-      });
-      return res.status(500).json({error: 'Internal STT Server Error'});
-    }
-
-    mozlog.info('request.asr.finish', {
-      request_id: res.locals.request_id,
-      status: 200,
-      time: Date.now() - asr_request_start
-    });
-
-    if (config.s3_bucket && metadata.storetranscription === '1') {
-      const json_upload_params = {
-        Body: resBody,
-        Bucket: config.s3_bucket,
-        ContentType: 'application/json',
-        Key: key_base + '/transcript.json'
-      };
-
-      const s3_request_start = Date.now();
-
-      mozlog.info('request.s3.json.start', {
-        request_id: res.locals.request_id,
-        key: key_base + '/transcript.json'
+        status: 200,
+        time: Date.now() - asr_request_start,
       });
 
-      S3.putObject(json_upload_params, (s3_error) => {
-        if (s3_error) {
-          mozlog.info('request.s3.json.error', {
-            request_id: res.locals.request_id,
-            key: key_base + '/transcript.json',
-            status: s3_error.statusCode,
-            time: Date.now() - s3_request_start
-          });
-          return next(s3_error);
-        }
+      if (config.s3_bucket && metadata.storetranscription === '1') {
+        const json_upload_params = {
+          Body: resBody,
+          Bucket: config.s3_bucket,
+          ContentType: 'application/json',
+          Key: key_base + '/transcript.json',
+        };
 
-        mozlog.info('request.s3.json.finish', {
+        const s3_request_start = Date.now();
+
+        mozlog.info('request.s3.json.start', {
           request_id: res.locals.request_id,
           key: key_base + '/transcript.json',
-          status: 200,
-          time: Date.now() - s3_request_start
         });
-      });
+
+        S3.putObject(json_upload_params, (s3_error) => {
+          if (s3_error) {
+            mozlog.info('request.s3.json.error', {
+              request_id: res.locals.request_id,
+              key: key_base + '/transcript.json',
+              status: s3_error.statusCode,
+              time: Date.now() - s3_request_start,
+            });
+            return next(s3_error);
+          }
+
+          mozlog.info('request.s3.json.finish', {
+            request_id: res.locals.request_id,
+            key: key_base + '/transcript.json',
+            status: 200,
+            time: Date.now() - s3_request_start,
+          });
+        });
+      }
     }
-  });
+  );
 });
 
-app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+app.use((err, req, res) => {
   mozlog.info('request.error', {
     request_id: res.locals.request_id,
-    error: err
+    error: err,
   });
 
   res.status(500).json({
-    message: err
+    message: err,
   });
 });
 
 const server = app.listen(config.port);
 mozlog.info('listen');
 
-process.on('SIGINT', () => { server.close(); });
-process.on('SIGTERM', () => { server.close(); });
-server.once('close', () => { mozlog.info('shutdown'); });
+process.on('SIGINT', () => {
+  server.close();
+});
+process.on('SIGTERM', () => {
+  server.close();
+});
+server.once('close', () => {
+  mozlog.info('shutdown');
+});

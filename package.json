@@ -14,14 +14,14 @@
   },
   "devDependencies": {
     "audit-filter": "^0.3.0",
-    "eslint": "^4.19.1",
-    "prettier": "^1.14.0"
+    "eslint": "^5.12.0",
+    "prettier": "^1.15.3"
   },
   "license": "MPL-2.0",
   "main": "server.js",
   "repository": "mozilla/speech-proxy",
   "scripts": {
-    "format": "prettier server.js --single-quote --write",
+    "format": "prettier server.js --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --single-quote --write",
     "lint": "eslint .",
     "lint:deps": "npm audit --json | audit-filter --nsp-config=.nsprc --audit=-",
     "start": "node server",
