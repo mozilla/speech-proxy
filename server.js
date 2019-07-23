@@ -503,8 +503,12 @@ app.post('*', function(req, res, next) {
 });
 
 app.use((err, req, res) => {
+  const reqId = res.locals && res.locals.request_id ?
+    res.locals.request_id :
+    '???';
+
   mozlog.info('request.error', {
-    request_id: res.locals.request_id,
+    request_id: reqId,
     error: err,
   });
 
