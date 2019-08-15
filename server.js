@@ -502,7 +502,7 @@ app.post('*', function(req, res, next) {
   );
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   const reqId = res.locals && res.locals.request_id ?
     res.locals.request_id :
     '???';
@@ -515,6 +515,8 @@ app.use((err, req, res) => {
   res.status(500).json({
     message: err,
   });
+
+  next();
 });
 
 const server = app.listen(config.port);
