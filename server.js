@@ -316,8 +316,9 @@ app.post('*', function(req, res, next) {
     opsdec_stderr_buf.push(data);
   });
 
+  const timestamp = new Date().toISOString();
   const key_uuid = uuid();
-  const key_base = key_uuid.slice(0, 2) + '/' + key_uuid;
+  const key_base = timestamp.split('T')[0] + '/' + key_uuid.slice(0, 2) + '/' + key_uuid;
 
   // assemble and store the metadata file
   const metadata = {
@@ -332,6 +333,7 @@ app.post('*', function(req, res, next) {
         : '1',
     useragent: req.headers['user-agent'],
     producttag: req.headers['product-tag'],
+    datetime: timestamp,
   };
 
   if (config.s3_bucket) {
