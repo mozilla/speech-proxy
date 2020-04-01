@@ -7,6 +7,7 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "file-type": "^8.1.0",
+    "hot-shots": "^7.2.0",
     "joi": "^13.4.0",
     "mozlog": "^2.2.0",
     "request": "^2.87.0",
