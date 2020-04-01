@@ -14,8 +14,12 @@ const Joi = require('joi');
 const fs = require('fs');
 const uuid = require('uuid/v4');
 const fileType = require('file-type');
+const StatsD = require('hot-shots');
 
 const app = express();
+const metrics = new StatsD({
+  prefix: 'speech-proxy.'
+});
 
 // eslint-disable-next-line no-control-regex
 const regexUA = RegExp('^[a-zA-Z0-9-_ \t\\/.;:]{0,1024}$');
@@ -134,6 +138,9 @@ app.use((req, res, next) => {
   });
 
   res.once('finish', () => {
+    metrics.increment('request.count', { status: res.statusCode });
+    metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
+
     mozlog.info('request.finish', {
       request_id: res.locals.request_id,
       remote_addr: req.ip,
