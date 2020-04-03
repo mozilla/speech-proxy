@@ -31,14 +31,12 @@ const languages = (() => {
 
 const configSchema = Joi.object({
   asr_url: Joi.string(),
-  disable_jail: Joi.boolean(),
   port: Joi.number(),
   s3_bucket: Joi.string().optional(),
 });
 
 const config = {
   asr_url: process.env.ASR_URL,
-  disable_jail: process.env.DISABLE_DECODE_JAIL === '1',
   port: process.env.PORT || 9001,
   s3_bucket: process.env.S3_BUCKET,
 };
@@ -241,15 +239,6 @@ app.get('/', (req, res) => {
 
 app.post('*', function(req, res, next) {
   let decodeArgs;
-
-  // then we convert it from opus to raw pcm
-  const jailArgs = [
-    'firejail',
-    '--profile=opusdec.profile',
-    '--debug',
-    '--force',
-  ];
-
   const header_validation = validateHeaders(req.headers);
 
   if (header_validation !== null) {
@@ -298,12 +287,8 @@ app.post('*', function(req, res, next) {
       .json({message: 'Body should be an Opus or Webm audio file'});
   }
 
-  let args = null;
-  if (config.disable_jail) {
-    args = decodeArgs;
-  } else {
-    args = jailArgs.concat(decodeArgs);
-  }
+  const args = decodeArgs;
+
   const opusdec_start = Date.now();
   mozlog.info('request.opusdec.start', {
     request_id: res.locals.request_id,
