@@ -164,6 +164,9 @@ app.use((req, res, next) => {
       metrics.increment('request.count', { status: res.statusCode });
       metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
       metrics.increment('request.productTag', { productTag: filterProductTag(req.headers['product-tag']) });
+      metrics.increment('request.language', { language: req.headers['accept-language-stt'] });
+      metrics.increment('request.storesample', { storeSample: req.headers['store-sample'] });
+      metrics.increment('request.storetranscription', { storeTranscription: req.headers['store-transcription'] });
     }
 
     mozlog.info('request.finish', {
