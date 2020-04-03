@@ -138,8 +138,10 @@ app.use((req, res, next) => {
   });
 
   res.once('finish', () => {
-    metrics.increment('request.count', { status: res.statusCode });
-    metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
+    if (req.method = 'POST') {
+      metrics.increment('request.count', { status: res.statusCode });
+      metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
+    }
 
     mozlog.info('request.finish', {
       request_id: res.locals.request_id,
