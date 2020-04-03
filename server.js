@@ -139,6 +139,7 @@ app.use((req, res, next) => {
     if (req.method === 'POST') {
       metrics.increment('request.count', { status: res.statusCode });
       metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
+      metrics.increment('request.productTag', { productTag: req.headers['product-tag'] });
     }
 
     mozlog.info('request.finish', {
