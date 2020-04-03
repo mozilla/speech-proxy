@@ -118,6 +118,30 @@ const validateHeaders = (headers) => {
   return null;
 };
 
+const filterProductTag = (productTag) => {
+  let tag = '';
+  switch(productTag) {
+  case 'vf':
+    tag = 'voice-fill';
+    break;
+  case 'fxv':
+    tag = 'firefox-voice';
+    break;
+  case 'fxr':
+    tag = 'firefox-reality';
+    break;
+  case 'shell-curl':
+    tag = 'shell-curl';
+    break;
+  case 'wsa':
+    tag = 'webspeech-api';
+    break;
+  default:
+    tag = 'unknown';
+  }
+  return tag;
+};
+
 const S3 = new AWS.S3({
   region: process.env.AWS_DEFAULT_REGION || 'us-east-1',
 });
@@ -139,7 +163,7 @@ app.use((req, res, next) => {
     if (req.method === 'POST') {
       metrics.increment('request.count', { status: res.statusCode });
       metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
-      metrics.increment('request.productTag', { productTag: req.headers['product-tag'] });
+      metrics.increment('request.productTag', { productTag: filterProductTag(req.headers['product-tag']) });
     }
 
     mozlog.info('request.finish', {
