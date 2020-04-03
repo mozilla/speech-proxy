@@ -138,7 +138,7 @@ app.use((req, res, next) => {
   });
 
   res.once('finish', () => {
-    if (req.method == 'POST') {
+    if (req.method === 'POST') {
       metrics.increment('request.count', { status: res.statusCode });
       metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
     }
