@@ -142,6 +142,75 @@ const filterProductTag = (productTag) => {
   return tag;
 };
 
+const filterLanguage = (language) => {
+
+  // if undefined, retorna english
+  if (language === undefined) {
+    return 'unk (en-us)';
+  } else {
+    const lang_header = language.toLowerCase();
+
+    // if the passed language contains anything different from two (eg. pt)
+    // or five (eg. pt-br) chars, or eleven (eg. cmn-Hans-CN)
+    // or six (eg.fil-PH)  we deny
+    if (
+      lang_header.length !== 2 &&
+      lang_header.length !== 5 &&
+      lang_header.length !== 11 &&
+      lang_header.length !== 6
+    ) {
+      return 'bad-lang';
+    }
+
+    // if the passed language contains five chars, (eg. pt-br)
+    // we try to match the exact key in the json, and if we find, we accept
+    if (
+      (lang_header.length === 11 ||
+        lang_header.length === 5 ||
+        lang_header.length === 6) &&
+      languages[lang_header] === undefined
+    ) {
+      return 'bad-lang';
+    }
+
+    // if the passed language contains two chars, we try to find a correspondent
+    // substring in the json's key and if it matches, we accept
+    if (lang_header.length === 2) {
+      let match_lang = false;
+      for (const lang in languages) {
+        if (lang.substring(0, 2) === lang_header) {
+          match_lang = true;
+          break;
+        }
+      }
+      if (!match_lang) {
+        return 'bad-lang';
+      }
+    }
+  }
+
+  return language;
+};
+
+const filterSampleTranscription = (value) => {
+  // validate storesample
+  let tag = '';
+  switch(value) {
+  case undefined:
+    tag = 'unset (store)';
+    break;
+  case '1':
+    tag = 'store';
+    break;
+  case '0':
+    tag = 'no-store';
+    break;
+  default:
+    tag = 'bad';
+  }
+  return tag;
+};
+
 const S3 = new AWS.S3({
   region: process.env.AWS_DEFAULT_REGION || 'us-east-1',
 });
@@ -161,12 +230,18 @@ app.use((req, res, next) => {
 
   res.once('finish', () => {
     if (req.method === 'POST') {
-      metrics.increment('request.count', { status: res.statusCode });
-      metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
-      metrics.increment('request.productTag', { productTag: filterProductTag(req.headers['product-tag']) });
-      metrics.increment('request.language', { language: req.headers['accept-language-stt'] });
-      metrics.increment('request.storesample', { storeSample: req.headers['store-sample'] });
-      metrics.increment('request.storetranscription', { storeTranscription: req.headers['store-transcription'] });
+      const header_validation = validateHeaders(req.headers);
+      if (header_validation !== null) {
+        metrics.increment('request.validorinvalid', { status: header_validation });
+      } else {
+        metrics.increment('request.validorinvalid', { status: 'valid' });
+        metrics.increment('request.count', { status: res.statusCode });
+        metrics.histogram('request.latency', Date.now() - request_start, { status: res.statusCode });
+        metrics.increment('request.productTag', { productTag: filterProductTag(req.headers['product-tag']) });
+        metrics.increment('request.language', { language: filterLanguage(req.headers['accept-language-stt']) });
+        metrics.increment('request.storesample', { storeSample: filterSampleTranscription(req.headers['store-sample']) });
+        metrics.increment('request.storetranscription', { storeTranscription: filterSampleTranscription(req.headers['store-transcription']) });
+      }
     }
 
     mozlog.info('request.finish', {
