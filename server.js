@@ -110,7 +110,8 @@ const validateHeaders = (headers) => {
   // validate producttag
   if (
     headers['product-tag'] !== undefined &&
-    !regexUA.test(headers['product-tag'])
+    (!regexUA.test(headers['product-tag']) ||
+    filterProductTag(headers['product-tag']) === 'unknown')
   ) {
     return 'product-tag';
   }
@@ -129,9 +130,6 @@ const filterProductTag = (productTag) => {
     break;
   case 'fxr':
     tag = 'firefox-reality';
-    break;
-  case 'shell-curl':
-    tag = 'shell-curl';
     break;
   case 'wsa':
     tag = 'webspeech-api';
@@ -423,11 +421,11 @@ app.post('*', function(req, res, next) {
     storesample:
       req.headers['store-sample'] !== undefined
         ? req.headers['store-sample']
-        : '1',
+        : '0',
     storetranscription:
       req.headers['store-transcription'] !== undefined
         ? req.headers['store-transcription']
-        : '1',
+        : '0',
     useragent: req.headers['user-agent'],
     producttag: req.headers['product-tag'],
     datetime: timestamp,
